@@ -39,8 +39,24 @@ def get_centroid(frame, depth, thresh_index = 20, kernel = 41):
         if len(contours) > 1 or len(contours) == 0:
             return (-1,-1,-1)
         else:
-            cx, cy = __get_contour_centroid__(contours[0])
-            return (cx,cy,__get_point_depth__(depth, cx, cy))
+            c = contours[0]
+            extLeft = tuple(c[c[:, :, 0].argmin()][0])
+            extRight = tuple(c[c[:, :, 0].argmax()][0])
+            extTop = tuple(c[c[:, :, 1].argmin()][0])
+            extBot = tuple(c[c[:, :, 1].argmax()][0])
+            
+            left_top = (extLeft[0], extTop[1])
+            right_bo = (extRight[0], extBot[1])
+
+            cv2.rectangle(img, left_top, right_bo, (0,0,255), 3)
+            
+            depth_r, _ = freenect.sync_get_depth(0, freenect.DEPTH_REGISTERED)
+            depth_p = []
+            for x in range(extLeft[0], extRight[0]):
+                for y in range(extTop[1], extBot[1]):
+                    if depth_r[y][x] != 0:
+                        depth_p.append(depth_r[y][x])
+            return np.average(depth_p)
 
 def __frame_to_gray__(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
