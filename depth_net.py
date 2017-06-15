@@ -37,6 +37,7 @@ def get_centroid(frame, depth, thresh_index = 20, kernel = 41):
         frame = __gaussian_blur__(__frame_to_gray__(frame), kernel)
         contours = __get_contours__(frame, thresh_index)
         if len(contours) > 1 or len(contours) == 0:
+            print "No se detecto nada"
             return (-1,-1,-1)
         else:
             c = contours[0]
@@ -44,19 +45,18 @@ def get_centroid(frame, depth, thresh_index = 20, kernel = 41):
             extRight = tuple(c[c[:, :, 0].argmax()][0])
             extTop = tuple(c[c[:, :, 1].argmin()][0])
             extBot = tuple(c[c[:, :, 1].argmax()][0])
-            
+
             left_top = (extLeft[0], extTop[1])
             right_bo = (extRight[0], extBot[1])
 
-            cv2.rectangle(img, left_top, right_bo, (0,0,255), 3)
-            
             depth_r, _ = freenect.sync_get_depth(0, freenect.DEPTH_REGISTERED)
             depth_p = []
             for x in range(extLeft[0], extRight[0]):
                 for y in range(extTop[1], extBot[1]):
                     if depth_r[y][x] != 0:
                         depth_p.append(depth_r[y][x])
-            return np.average(depth_p)
+            x, y = __get_contour_centroid__(c)
+            return (x, y, np.average(depth_p))
 
 def __frame_to_gray__(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -73,7 +73,21 @@ def __binary_threshold__(frame, threshold = 20):
 def compute_matrix(detected_points, calibration_points):
     x = np.array(detected_points)
     y = np.array(calibration_points)
-    A = np.vstack([x.T,np.ones(x.shape[0])]).T
-    mc, resid, rank,  sigma =np.linalg.lstsq(A,y)
-    m,c = mc[0:3],mc[-1]
-    return mc
+    mc, resid, rank, sigma = lstsq(x,y)
+    m, c = mc[0:3], mc[-1]
+    return m, c
+
+def build_a(x_data):
+    return np.column_stack((x_data, np.ones(len(x_data))))
+
+def lstsq(x_data, y_data):
+    return np.linalg.lstsq(build_a(x_data), y_data)
+
+def test_camera():
+    while True:
+        frame = get_video_frame()
+        cv2.imshow("frame", frame)
+
+        k = cv2.waitKey(10)
+        if k == 27:
+            break

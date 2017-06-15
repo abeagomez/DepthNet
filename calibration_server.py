@@ -27,22 +27,22 @@ def establish_connection(s):
 		d = s.recvfrom(1024)
 		data = d[0]
 		addr = d[1]
-    
+
 		data = struct.unpack('i',data)
 		print "receiving " + str(data[0])
 
 		if data[0] != 0:
 			continue
+		print "Start signal received"
 		break
 	while 1:
-		print "sending 0" 
+		print "sending 0"
 		msg = struct.pack('i', 0)
 		s.sendto(msg , addr)
 
-		rlist, wlist, xlist = select.select([s],[],[],1.0)    
+		rlist, wlist, xlist = select.select([s],[],[],1.0)
 
 		if rlist == []:
-			print "No llega nada"
 			continue
 		d = s.recvfrom(1024)
 		data = d[0]
@@ -52,27 +52,27 @@ def establish_connection(s):
 		#except:
 		#	print "el unpack dio error"
 		#	continue
-
-		print "receiving " + str(data[0])
-		if data[0] != 1:
+		print "Se recibido el primer punto"
+		if data[0] != 0:
 			continue
 		return data, addr
 
 def receive_points(s, point_1, points_number):
-	print "Se van a recibir los puntos"
+	print "Se van a recibir el resto de los puntos"
 	virtual_coordinates = [(point_1[0][1], point_1[0][2], point_1[0][3])]
 	#get_interaction()
-	real_coordinates = []
+	print "Se usa depthnet por primera vez"
+	real_coordinates = [get_world_coordinates()]
 	addr = point_1[1]
-	i = 2
-	while i <= points_number:
-		print 'sending confirmation'
+	i = 1
+	while i < points_number:
+		print 'enviando confirmacion del punto'
 		msg = struct.pack('i',1)
 		s.sendto(msg, addr)
 
 		rlist, wlist, xlist = select.select([s],[],[],1.0)
 		if rlist == []:
-			continue 
+			continue
 
 		d = s.recvfrom(1024)
 		data = d[0]
@@ -86,11 +86,18 @@ def receive_points(s, point_1, points_number):
 			i += 1
 			virtual_coordinates.append((data[1],data[2],data[3]))
 			real_coordinates.append(get_world_coordinates())
-			print virtual_coordinates[-1]
-			#get interaction append to real_coordinates
 	return depth_net.compute_matrix(real_coordinates, virtual_coordinates)
 
-def get_world_coordinates(m, c):
+def get_world_coordinates():
+	while True:
+		frame = depth_net.get_video_frame()
+		depth = depth_net.get_depth_map()
+		print "obtuve el frame y la profundidad sin problemas"
+		point = depth_net.get_centroid(frame, depth)
+		if point != (-1,-1,-1):
+			return point
+
+def get_interaction_virtual_coordinates(m, c):
 	while True:
 		frame = depth_net.get_video_frame()
 		depth = get_depth_map()
@@ -100,16 +107,16 @@ def get_world_coordinates(m, c):
 
 def send_points(s, addr, m, c):
 	while 1:
-		point = get_world_coordinates(m, c)
+		point = get_interaction_virtual_coordinates(m, c)
 		print point
-		msg = struct.pack('ifff',3,point[0],point[1],point[2])
+		msg = struct.pack('fff',point[0],point[1],point[2])
 		s.sendto(msg,addr)
 
 def fake_sending(s,addr):
 	while 1:
 		x = random.uniform(-0.5,0.5)
 		y = random.uniform(-0.01,1.0)
-		z = random.uniform(-0.3,0.3) 
+		z = random.uniform(-0.3,0.3)
 		msg = struct.pack('fff',x,y,z)
 		print x,y,z
 		s.sendto(msg, addr)
@@ -119,7 +126,7 @@ def calibrate_system(host, port, points_number):
 	point_1 = establish_connection(s)
 	m, c = receive_points(s, point_1, points_number)
 	#fake_sending(s,point_1[1])
-	fake_sending(s, point_1[1], m, c)
+	send_points(s, point_1[1], m, c)
 
 
 
