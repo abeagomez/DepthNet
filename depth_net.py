@@ -1,6 +1,7 @@
 import cv2
 import freenect
 import numpy as np
+import math
 
 def get_video_frame():
     return(freenect.sync_get_video()[0])
@@ -26,7 +27,7 @@ def __get_contour_centroid__(contour):
         cy = int(M['m01']/M['m00'])
         return cx,cy
     else:
-        raise exception("centroid division by zero")
+        return (-1,-1)
 
 def __get_contours__(frame, thresh_index = 20):
         contours, _ = cv2.findContours(__binary_threshold__(frame, thresh_index), cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -36,9 +37,10 @@ def __get_contours__(frame, thresh_index = 20):
 def get_centroid(frame, depth, thresh_index = 20, kernel = 41):
         frame = __gaussian_blur__(__frame_to_gray__(frame), kernel)
         contours = __get_contours__(frame, thresh_index)
+        default_response = (-1,-1,-1)
         if len(contours) > 1 or len(contours) == 0:
             print "No se detecto nada"
-            return (-1,-1,-1)
+            return default_response
         else:
             c = contours[0]
             extLeft = tuple(c[c[:, :, 0].argmin()][0])
@@ -56,7 +58,12 @@ def get_centroid(frame, depth, thresh_index = 20, kernel = 41):
                     if depth_r[y][x] != 0:
                         depth_p.append(depth_r[y][x])
             x, y = __get_contour_centroid__(c)
-            return (x, y, np.average(depth_p))
+            if (x,y) == (-1,-1):
+                return default_response
+            z = np.average(depth_p)
+            if math.isnan(float(z)):
+                return default_response
+            return (x, y, z)
 
 def __frame_to_gray__(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
