@@ -30,6 +30,7 @@ def __get_contour_centroid__(contour):
         return (-1,-1)
 
 def __get_contours__(frame, thresh_index = 20):
+        #cv2.imshow("contour", __binary_threshold__(frame, thresh_index))
         contours, _ = cv2.findContours(__binary_threshold__(frame, thresh_index), cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         return contours
 
@@ -64,6 +65,20 @@ def get_centroid(frame, depth, thresh_index = 20, kernel = 41):
             if math.isnan(float(z)):
                 return default_response
             return (x, y, z)
+
+def show_scene(frame, depth, centroid = (-1,-1,-1)):
+    filtered_frame = __binary_threshold__(__gaussian_blur__(__frame_to_gray__(frame), 41), 20)
+    filtered_frame = cv2.cvtColor(filtered_frame, cv2.COLOR_GRAY2BGR)
+    #filtered_frame = __binary_threshold__(frame, 20)
+    #filtered_frame = cv2.cvtColor(filtered_frame, cv2.COLOR_GRAY2BGR)
+    if centroid != (-1,-1,-1):
+        cv2.circle(filtered_frame,(centroid[0],centroid[1]),3,(0,0,255),3)
+    cv2.putText(filtered_frame,"({:.0f}, {:.0f}) {:.2f}mm".format(*centroid),(centroid[0], centroid[1]-10),cv2.FONT_HERSHEY_PLAIN,1,(0,255,0))
+    cv2.imshow("contour", filtered_frame)
+    cv2.imshow("frame", frame)
+    cv2.imshow("depth", depth)
+
+
 
 def __frame_to_gray__(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
