@@ -1,3 +1,0 @@
-Supóngase que se tiene una imagen compuesta por objetos iluminados sobre un fondo oscuro, de forma tal que los pixeles de los objetos y del fondo pueden agruparse en dos grupos dominantes. Una manera obvia de extraer los objetos de dicha imagen es seleccionar un umbral (threshold), T, que separe estos grupos. Entonces, cualquier pixel (x,y) de la imagen cuya intensidad i(x,y) sea mayor que T, podría ser etiquetado como un "punto de objeto"; en caso contrario, se etiquetaría como un "punto de fondo". La segmentación de la imagen g(x,y) estaría entonces dada por:
-
-Cuando T es una constante aplicada sobre la imagen entera, el proceso dado por la ecuación anterior se conoce como "umbral global" (global thresholding)
